@@ -1,0 +1,17 @@
+# IHP PacTech Cu-pillar 3D stackup fragment (Table 6.1 Option 2 default).
+# Concatenated by chiplet-studio onto the interposer base stackup when the
+# active interconnect method is a cu-pillar option. z is referenced to the
+# interposer top (Passiv top = 13.83 um). Split out of
+# chiplet-studio/configs/stackups/ihp-interposer.yaml:95-110.
+
+CuPillar:
+  index: 500
+  type: 35
+  z: 13.83
+  height: 32.00
+
+SnAgCap:
+  index: 501
+  type: 35
+  z: 45.83
+  height: 16.00

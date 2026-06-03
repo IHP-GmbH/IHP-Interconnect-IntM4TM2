@@ -1,0 +1,9 @@
+# IHP PacTech SAC305 solder-bump 3D stackup fragment (Section 6.9.1).
+# z referenced to interposer top (Passiv top = 13.83 um). Split out of
+# chiplet-studio/configs/stackups/ihp-interposer.yaml:116-120.
+
+SolderBall:
+  index: 502
+  type: 36
+  z: 13.83
+  height: 80.00

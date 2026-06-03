@@ -1,0 +1,41 @@
+# frozen_string_literal: true
+#
+# Bump pitch/spacing rules -- the bump-to-bump method rules that moved out of
+# the interposer PDK (Padc.b/Padc.e, Padb.b/Padb.e). They govern the
+# relationship BETWEEN attachment points, as opposed to the pad-vs-substrate
+# rules that stay on the interposer (Padc.a/c/d/f).
+#
+# Standalone deck: derives the attachment region from the IHP UBM openings and
+# checks the selected method's spacing/pitch. The CANONICAL assembly check runs
+# over the abstract chiplet_attachment_input in the ADK
+# (adk/klayout/drc/rule_decks/8_2_interconnect.drc); this deck exists so the
+# interconnect PDK owns its rules self-contained and can be run in isolation.
+#
+# Select the method with:  klayout -b -r bump_pitch.drc -rd method=cupillar_opt2 ...
+# Values come from interconnect_rules.json (mirror of the manifest). The
+# pitch->space conversion mirrors the interposer deck (6_9_copperpillar.drc:82-89):
+# KLayout has no native pitch check, so min_space = min_pitch - pad_size.
+
+require 'json'
+
+rules_path = File.join(File.dirname(File.expand_path(__FILE__)), 'interconnect_rules.json')
+ixn_data = JSON.parse(File.read(rules_path))
+method = (defined?($method) && $method && !$method.to_s.empty?) ? $method.to_s : ixn_data['default_method']
+r = ixn_data['methods'][method]
+raise "Unknown interconnect method '#{method}' in interconnect_rules.json" if r.nil?
+
+# Attachment region from the IHP UBM openings (pillar datatype 35, sbump 36).
+cu_pillarpad = polygons(9, 35).and(polygons(41, 35))
+sbumppad     = polygons(9, 36).and(polygons(41, 36))
+ixn_region   = method.start_with?('sbump') ? sbumppad : cu_pillarpad
+
+# IXN.b -- minimum edge-to-edge spacing between attachment points.
+ixn_b = ixn_region.space(r['IXN_spacing'].to_f.um, euclidian)
+ixn_b.output('IXN.b', "IXN.b : Min. attachment-point spacing is #{r['IXN_spacing']} um (#{method})")
+ixn_b.forget
+
+# IXN.e -- minimum pitch, converted to a spacing (min_space = pitch - pad_size).
+ixn_e_space = (r['IXN_pitch'].to_f - r['IXN_pad_size'].to_f).um
+ixn_e = ixn_region.space(ixn_e_space, euclidian)
+ixn_e.output('IXN.e', "IXN.e : Min. attachment-point pitch is #{r['IXN_pitch']} um (#{method})")
+ixn_e.forget

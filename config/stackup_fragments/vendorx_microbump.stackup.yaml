@@ -1,0 +1,16 @@
+# VendorX fine-pitch microbump 3D stackup fragment (DEMO, non-IHP).
+# Demonstrates that the 3D stack travels with the interconnect method, not the
+# interposer: a shorter (24 um total) finer-pitch bump on the SAME IHP UBM.
+# z referenced to interposer top (Passiv top = 13.83 um).
+
+VendorXBumpCu:
+  index: 510
+  type: 35
+  z: 13.83
+  height: 18.00
+
+VendorXBumpCap:
+  index: 511
+  type: 35
+  z: 31.83
+  height: 6.00

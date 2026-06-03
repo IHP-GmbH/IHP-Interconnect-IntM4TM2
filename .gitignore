@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# KLayout / EDA artifacts
+*.gds.gz
+*.oas
+*.lyrdb
+*.l2n
+
+# Editor / OS
+*.swp
+.DS_Store

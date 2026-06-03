@@ -1,0 +1,12 @@
+{
+  "description": "Pitch/spacing rule values per interconnect method (IXN.b spacing, IXN.e pitch). These are the bump-to-bump rules that moved out of the interposer PDK (Padc.b/Padc.e, Padb.b/Padb.e). Mirror of interconnect_methods.json pitch_rules for the standalone bump_pitch.drc deck; the manifest is the source of truth.",
+  "version": "1.0",
+  "default_method": "cupillar_opt2",
+  "methods": {
+    "cupillar_opt1": {"IXN_spacing": 40.0, "IXN_pitch": 75.0,  "IXN_pad_size": 35.0},
+    "cupillar_opt2": {"IXN_spacing": 40.0, "IXN_pitch": 80.0,  "IXN_pad_size": 40.0},
+    "cupillar_opt3": {"IXN_spacing": 50.0, "IXN_pitch": 95.0,  "IXN_pad_size": 45.0},
+    "sbump_sac305":  {"IXN_spacing": 70.0, "IXN_pitch": 130.0, "IXN_pad_size": 60.0},
+    "vendorx_microbump": {"IXN_spacing": 15.0, "IXN_pitch": 50.0, "IXN_pad_size": 35.0}
+  }
+}
