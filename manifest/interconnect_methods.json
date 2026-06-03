@@ -22,13 +22,13 @@
     "ihp_cupillar_anchor": {
       "description": "IHP SG13G2 Cu-pillar UBM opening (fabricated by the interposer)",
       "interposer_pdk": "interposer",
-      "adk_attachment_adapter": "ihp_sg13g2_interposer",
+      "adk_attachment_adapter": "intm4tm2",
       "layers": {"passiv": "9/35", "dfpad": "41/35", "recog": "99/35"}
     },
     "ihp_sbump_anchor": {
       "description": "IHP SG13G2 solder-bump UBM opening (fabricated by the interposer)",
       "interposer_pdk": "interposer",
-      "adk_attachment_adapter": "ihp_sg13g2_interposer",
+      "adk_attachment_adapter": "intm4tm2",
       "layers": {"passiv": "9/36", "dfpad": "41/36", "recog": "99/36"}
     }
   },

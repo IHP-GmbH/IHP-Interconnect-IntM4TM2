@@ -6,7 +6,7 @@ assembly:
 
 # WHERE attachment lands (unchanged): the IHP interposer.
 interposer:
-  adapter: "ihp_sg13g2_interposer"
+  adapter: "intm4tm2"
 
 # HOW attachment is realised: a non-IHP fine-pitch microbump method. Swapping
 # this single field to "ihp_cupillar" reverts to the IHP cu-pillar rules.
@@ -25,7 +25,7 @@ connection_stacks:
 components:
   - id: interposer
     type: interposer
-    technology: interposer_tech
+    technology: intm4tm2
   - id: U1
     type: die
     connection: vendorx_microbump

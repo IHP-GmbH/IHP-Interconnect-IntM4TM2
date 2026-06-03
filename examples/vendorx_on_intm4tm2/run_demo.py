@@ -11,7 +11,7 @@ method is swappable while the interposer (IHP) adapter is untouched:
 Synthesizes a GDS with real IHP UBM openings (Passiv:pillar 9/35 AND dfpad:pillar
 41/35 -- the region the IHP interposer adapter exposes as chiplet_attachment_input)
 plus VendorX 3D bodies (510/511) at 50 um pitch, then runs the ADK assembly DRC
-twice with the real ihp_sg13g2_interposer adapter.
+twice with the real intm4tm2 adapter.
 
 Run: python3 run_demo.py
 """
@@ -102,7 +102,7 @@ def run_drc(gds, interconnect_adapter, run_dir):
     report = run_dir / ("report_%s.lyrdb" % interconnect_adapter)
     cmd = [sys.executable, str(ADK_RUNNER),
            "--path", str(gds),
-           "--interposer-adapter", "ihp_sg13g2_interposer",
+           "--interposer-adapter", "intm4tm2",
            "--interconnect-adapter", interconnect_adapter,
            "--report", str(report), "--run_dir", str(run_dir)]
     proc = subprocess.run(cmd, capture_output=True, text=True)
@@ -120,7 +120,7 @@ def main():
     print("VendorX fine-pitch microbump on IHP interposer")
     print("  geometry: 2 pads, opening %.0f um, pitch %.0f um, bodies 510/511"
           % (OPENING_UM, PITCH_UM))
-    print("  interposer adapter (fixed): ihp_sg13g2_interposer")
+    print("  interposer adapter (fixed): intm4tm2")
     print()
 
     v_vendor = run_drc(gds, "vendorx_microbump", work)

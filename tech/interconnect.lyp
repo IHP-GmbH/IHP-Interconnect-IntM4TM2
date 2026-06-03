@@ -2,7 +2,7 @@
 <!--
   interconnect.lyp: KLayout layer properties for the post-passivation 3D
   interconnect bodies. These layers live in the interconnect PDK, not the
-  interposer. Load this ALONGSIDE the interposer's interposer_ihp.lyp when
+  interposer. Load this ALONGSIDE the interposer's intm4tm2.lyp when
   visualising an assembled stack.
 
   Layer numbers 500+ avoid collision with IHP SG13G2 upstream (<200).

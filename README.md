@@ -26,7 +26,7 @@ tech/interconnect.lyp                KLayout layer properties for 500+ bodies
 tech/drc/rule_decks/                 layers_def_3d.drc, bump_pitch.drc, interconnect_rules.json
 config/stackup_fragments/            3D stackup YAML fragments concatenated by chiplet-studio
 scripts/bump3d_generator.py          Generates the 3D bodies (split from interposer bump_mirror.py)
-examples/vendorx_on_ihp_interposer/  2nd-vendor (non-IHP) end-to-end demo
+examples/vendorx_on_intm4tm2/        2nd-vendor (non-IHP) end-to-end demo
 ```
 
 ## How the suite consumes it
@@ -49,7 +49,8 @@ sibling-repo search.
 
 `cupillar_opt1/2/3`, `sbump_sac305` (IHP/PacTech, default library), and
 `vendorx_microbump` (a fictional non-IHP fine-pitch microbump demonstrating
-that the method is swappable on the same IHP interposer).
+that the method is swappable on the same IHP 130-nm IntM4TM2 aluminum BEOL
+interposer).
 
 ## ADK relationship
 

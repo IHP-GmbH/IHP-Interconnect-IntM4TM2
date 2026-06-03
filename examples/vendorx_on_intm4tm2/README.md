@@ -6,7 +6,7 @@ touching the interposer**.
 ## What it shows
 
 Two pads at 50 µm pitch on a real IHP interposer (UBM openings `9/35 ∩ 41/35` —
-the region the `ihp_sg13g2_interposer` adapter exposes as
+the region the `intm4tm2` adapter exposes as
 `chiplet_attachment_input`) with VendorX microbump 3D bodies (`510/511`). The ADK
 assembly DRC runs twice over the **same geometry** with the **same interposer
 adapter**, changing only `--interconnect-adapter`:
