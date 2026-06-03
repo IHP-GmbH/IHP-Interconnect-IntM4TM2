@@ -1,0 +1,31 @@
+format_version: "1.0"
+
+assembly:
+  name: "vendorx_demo"
+  units: "um"
+
+# WHERE attachment lands (unchanged): the IHP interposer.
+interposer:
+  adapter: "ihp_sg13g2_interposer"
+
+# HOW attachment is realised: a non-IHP fine-pitch microbump method. Swapping
+# this single field to "ihp_cupillar" reverts to the IHP cu-pillar rules.
+interconnect:
+  adapter: "vendorx_microbump"
+
+# Injected from the interconnect PDK manifest by hyp_to_gds --update-chiplet-file;
+# shown here for illustration.
+connection_stacks:
+  vendorx_microbump:
+    description: "VendorX fine-pitch microbump (demo, non-IHP) on IHP interposer UBM"
+    layers:
+      - {name: VendorXBumpCu, material: Cu, height: 18.0, diameter: 40.0}
+      - {name: VendorXBumpCap, material: SnAg, height: 6.0, diameter: 40.0}
+
+components:
+  - id: interposer
+    type: interposer
+    technology: interposer_tech
+  - id: U1
+    type: die
+    connection: vendorx_microbump
