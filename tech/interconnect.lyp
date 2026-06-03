@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  interconnect.lyp -- KLayout layer properties for the post-passivation 3D
+  interconnect.lyp: KLayout layer properties for the post-passivation 3D
   interconnect bodies. These layers live in the interconnect PDK, not the
   interposer. Load this ALONGSIDE the interposer's interposer_ihp.lyp when
   visualising an assembled stack.
