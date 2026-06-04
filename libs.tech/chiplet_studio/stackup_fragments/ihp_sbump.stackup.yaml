@@ -1,10 +1,15 @@
 # IHP PacTech SAC305 solder-bump 3D stackup fragment (Section 6.9.1).
-# z referenced to the IntM4TM2 interposer top (Passiv top = 13.83 um).
 # Canonical here; split out of chiplet-studio's interposer stackup
 # (intm4tm2.yaml).
+#
+# z values are relative to the interposer's attachment surface (declared by
+# z_reference: attachment_surface); the consumer offsets them by the
+# attachment_surface_z the interposer stackup declares.
+
+z_reference: attachment_surface
 
 SolderBall:
   index: 502
   type: 36
-  z: 13.83
+  z: 0.00
   height: 80.00

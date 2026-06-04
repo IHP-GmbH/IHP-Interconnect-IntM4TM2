@@ -1,7 +1,12 @@
 # IHP PacTech Cu-pillar 3D stackup fragment (Table 6.1 Option 1).
 # Concatenated by chiplet-studio onto the interposer base stackup when the
-# active interconnect method is a cu-pillar option. z is referenced to the
-# IntM4TM2 interposer top (Passiv top = 13.83 um).
+# active interconnect method is a cu-pillar option.
+#
+# z values are relative to the interposer's attachment surface (declared by
+# z_reference: attachment_surface): the consumer offsets them by the
+# attachment_surface_z the interposer stackup declares (IntM4TM2: 13.83 um,
+# the exposed pad top). This keeps the fragment method-pure -- the same bump
+# stack seats correctly on any interposer that declares its surface.
 #
 # Option 1 (28 + 16 um) is the canonical option: it is what both DRC stages
 # check (interposer_tech_default.json and the ADK ihp_cupillar adapter) and
@@ -11,14 +16,16 @@
 # connection stack). Follow-up: derive body heights from the active inline
 # stack / per-option fragments.
 
+z_reference: attachment_surface
+
 CuPillar:
   index: 500
   type: 35
-  z: 13.83
+  z: 0.00
   height: 28.00
 
 SnAgCap:
   index: 501
   type: 35
-  z: 41.83
+  z: 28.00
   height: 16.00

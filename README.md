@@ -32,6 +32,8 @@ libs.tech/klayout/interconnect_tests/        Test suite (pytest)
 libs.tech/klayout/tech/interconnect.lyp      KLayout layer properties for 500+ bodies
 libs.tech/klayout/tech/drc/rule_decks/       layers_def_3d.drc, bump_pitch.drc, interconnect_rules.json
 libs.tech/chiplet_studio/stackup_fragments/  3D stackup YAML fragments concatenated by chiplet-studio
+                                             (z_reference: attachment_surface -- z values are relative to
+                                             the surface the interposer stackup declares, method-pure)
 libs.ref/interconnect_examples/
     vendorx_on_intm4tm2/                     2nd-vendor (non-IHP) end-to-end demo
 ```
