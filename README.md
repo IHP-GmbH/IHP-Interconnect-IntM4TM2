@@ -50,7 +50,13 @@ rules = im.pitch_rules("vendorx_microbump")
 
 Discovery: tools add `interconnect_pdk/libs.tech/klayout/python/` to
 `sys.path`. The manifest is located via `$INTERCONNECT_PDK_ROOT`, a path
-relative to the module, or a sibling-repo search.
+relative to the module, or a sibling-repo search. The sibling search keys
+on the conventional directory name, so clone accordingly (or set the
+environment variable):
+
+```bash
+git clone git@github.com:IHP-GmbH/IHP-Interconnect-IntM4TM2.git interconnect_pdk
+```
 
 ## Methods
 
