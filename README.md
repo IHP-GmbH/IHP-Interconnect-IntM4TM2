@@ -1,4 +1,4 @@
-# interconnect_pdk
+# IHP-Interconnect-IntM4TM2
 
 Interconnection PDK for chiplet-on-interposer assembly. Owns the
 **post-fabrication** elements that join a chiplet to an interposer:
