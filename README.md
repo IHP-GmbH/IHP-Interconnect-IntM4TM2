@@ -18,7 +18,7 @@ connection stacks, and the bump-to-bump pitch/spacing rules.
 
 ## Layout
 
-Follows the IHP PDK directory convention (`libs.tech/<tool>/`, `libs.ref/`),
+Follows the IHP Open-PDK's directory convention (`libs.tech/<tool>/`, `libs.ref/`),
 the same pattern as the sibling interposer repo. The manifest stays at the
 root: it is the cross-tool contract of the whole PDK, not data of one tool.
 
