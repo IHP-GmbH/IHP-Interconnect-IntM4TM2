@@ -1,0 +1,23 @@
+# IHP PacTech Cu-pillar 3D stackup fragment, Table 6.1 Option 3 (45um opening).
+# Heights mirror the manifest's connection_stack for cupillar_opt3.
+#
+# Method-keyed: chiplet-studio selects this fragment from a die's
+# `connection:` id, so each die renders/seats with its own option's bodies.
+#
+# z values are relative to the interposer's attachment surface (declared by
+# z_reference: attachment_surface); the consumer offsets them by the
+# attachment_surface_z the interposer stackup declares.
+
+z_reference: attachment_surface
+
+CuPillar:
+  index: 500
+  type: 35
+  z: 0.00
+  height: 42.00
+
+SnAgCap:
+  index: 501
+  type: 35
+  z: 42.00
+  height: 19.00

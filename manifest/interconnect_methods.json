@@ -49,7 +49,7 @@
       "fab_params": {"passiv_opening_um": 35.0, "tm2_enclosure_um": 7.5},
       "pitch_rules": {"IXN_spacing": 40.0, "IXN_pitch": 75.0},
       "adapter": "ihp_cupillar",
-      "stackup_fragment": "libs.tech/chiplet_studio/stackup_fragments/ihp_cupillar.stackup.yaml"
+      "stackup_fragment": "libs.tech/chiplet_studio/stackup_fragments/cupillar_opt1.stackup.yaml"
     },
 
     "cupillar_opt2": {
@@ -67,7 +67,7 @@
       "fab_params": {"passiv_opening_um": 40.0, "tm2_enclosure_um": 7.5},
       "pitch_rules": {"IXN_spacing": 40.0, "IXN_pitch": 80.0},
       "adapter": "ihp_cupillar",
-      "stackup_fragment": "libs.tech/chiplet_studio/stackup_fragments/ihp_cupillar.stackup.yaml"
+      "stackup_fragment": "libs.tech/chiplet_studio/stackup_fragments/cupillar_opt2.stackup.yaml"
     },
 
     "cupillar_opt3": {
@@ -85,7 +85,7 @@
       "fab_params": {"passiv_opening_um": 45.0, "tm2_enclosure_um": 7.5},
       "pitch_rules": {"IXN_spacing": 50.0, "IXN_pitch": 95.0},
       "adapter": "ihp_cupillar",
-      "stackup_fragment": "libs.tech/chiplet_studio/stackup_fragments/ihp_cupillar.stackup.yaml"
+      "stackup_fragment": "libs.tech/chiplet_studio/stackup_fragments/cupillar_opt3.stackup.yaml"
     },
 
     "sbump_sac305": {
@@ -102,7 +102,7 @@
       "fab_params": {"passiv_opening_um": 60.0, "tm2_enclosure_um": 10.0},
       "pitch_rules": {"IXN_spacing": 70.0, "IXN_pitch": 130.0},
       "adapter": "ihp_sbump",
-      "stackup_fragment": "libs.tech/chiplet_studio/stackup_fragments/ihp_sbump.stackup.yaml"
+      "stackup_fragment": "libs.tech/chiplet_studio/stackup_fragments/sbump_sac305.stackup.yaml"
     },
 
     "vendorx_microbump": {

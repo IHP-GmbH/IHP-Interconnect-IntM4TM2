@@ -1,7 +1,8 @@
-# DEPRECATED family-default fragment (adapter-keyed), kept for consumers
-# that select fragments by ADAPTER id instead of METHOD id. Values are a
-# copy of cupillar_opt1.stackup.yaml (the canonical Option 1) -- do not
-# edit independently; per-method consumers use cupillar_opt1/2/3 directly.
+# IHP PacTech Cu-pillar 3D stackup fragment, Table 6.1 Option 2 (40um opening).
+# Heights mirror the manifest's connection_stack for cupillar_opt2.
+#
+# Method-keyed: chiplet-studio selects this fragment from a die's
+# `connection:` id, so each die renders/seats with its own option's bodies.
 #
 # z values are relative to the interposer's attachment surface (declared by
 # z_reference: attachment_surface); the consumer offsets them by the
@@ -13,10 +14,10 @@ CuPillar:
   index: 500
   type: 35
   z: 0.00
-  height: 28.00
+  height: 32.00
 
 SnAgCap:
   index: 501
   type: 35
-  z: 28.00
+  z: 32.00
   height: 16.00

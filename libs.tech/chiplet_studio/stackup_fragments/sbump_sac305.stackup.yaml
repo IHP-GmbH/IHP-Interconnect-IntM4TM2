@@ -1,7 +1,8 @@
-# DEPRECATED family-default fragment (adapter-keyed), kept for consumers
-# that select fragments by ADAPTER id instead of METHOD id. Values are a
-# copy of sbump_sac305.stackup.yaml -- do not edit independently;
-# per-method consumers use sbump_sac305 directly.
+# IHP PacTech SAC305 solder-bump 3D stackup fragment (Section 6.9.1, 80um ball).
+# Heights mirror the manifest's connection_stack for sbump_sac305.
+#
+# Method-keyed: chiplet-studio selects this fragment from a die's
+# `connection:` id, so each die renders/seats with its own method's bodies.
 #
 # z values are relative to the interposer's attachment surface (declared by
 # z_reference: attachment_surface); the consumer offsets them by the

@@ -1,6 +1,8 @@
 # VendorX fine-pitch microbump 3D stackup fragment (DEMO, non-IHP).
 # Demonstrates that the 3D stack travels with the interconnect method, not the
 # interposer: a shorter (24 um total) finer-pitch bump on the SAME IHP UBM.
+# Method id and adapter id coincide for this vendor, so this file serves
+# both the method-keyed and the adapter-keyed lookup.
 #
 # z values are relative to the interposer's attachment surface (declared by
 # z_reference: attachment_surface); the consumer offsets them by the
