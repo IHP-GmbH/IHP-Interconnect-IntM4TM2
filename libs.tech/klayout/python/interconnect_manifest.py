@@ -12,7 +12,8 @@ KiCad's bundled Python. No third-party dependencies.
 
 Discovery order for the manifest (when no explicit path is given):
   1. $INTERCONNECT_PDK_ROOT/manifest/interconnect_methods.json
-  2. ../manifest/interconnect_methods.json relative to this file
+  2. the repo's own manifest/ relative to this file
+     (this file lives at libs.tech/klayout/python/, the manifest at the root)
   3. walk parent directories for interconnect_pdk/manifest/interconnect_methods.json
      (locates the sibling repo, mirroring how hyp_to_gds discovers gds_to_kicad)
 """
@@ -39,8 +40,9 @@ def find_manifest_path() -> Optional[Path]:
         if cand.exists():
             return cand
 
+    # libs.tech/klayout/python/ -> repo root is three levels up.
     here = Path(__file__).resolve().parent
-    cand = here.parent / "manifest" / _MANIFEST_NAME
+    cand = here.parents[2] / "manifest" / _MANIFEST_NAME
     if cand.exists():
         return cand
 

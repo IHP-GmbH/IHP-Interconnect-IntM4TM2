@@ -18,15 +18,22 @@ connection stacks, and the bump-to-bump pitch/spacing rules.
 
 ## Layout
 
+Follows the IHP PDK directory convention (`libs.tech/<tool>/`, `libs.ref/`),
+the same pattern as the sibling interposer repo. The manifest stays at the
+root: it is the cross-tool contract of the whole PDK, not data of one tool.
+
 ```
-manifest/interconnect_methods.json   Single source of truth (methods -> stacks, layers, rules, adapter)
-manifest/schema/                     JSON schema for the manifest
-python/interconnect_manifest.py      Reader API imported by the tool suite
-tech/interconnect.lyp                KLayout layer properties for 500+ bodies
-tech/drc/rule_decks/                 layers_def_3d.drc, bump_pitch.drc, interconnect_rules.json
-config/stackup_fragments/            3D stackup YAML fragments concatenated by chiplet-studio
-scripts/bump3d_generator.py          Generates the 3D bodies (split from interposer bump_mirror.py)
-examples/vendorx_on_intm4tm2/        2nd-vendor (non-IHP) end-to-end demo
+manifest/interconnect_methods.json           Single source of truth (methods -> stacks, layers, rules, adapter)
+manifest/schema/                             JSON schema for the manifest
+libs.tech/klayout/python/
+    interconnect_manifest.py                 Reader API imported by the tool suite
+    bump3d_generator.py                      Generates the 3D bodies (split from interposer bump_mirror.py)
+libs.tech/klayout/interconnect_tests/        Test suite (pytest)
+libs.tech/klayout/tech/interconnect.lyp      KLayout layer properties for 500+ bodies
+libs.tech/klayout/tech/drc/rule_decks/       layers_def_3d.drc, bump_pitch.drc, interconnect_rules.json
+libs.tech/chiplet_studio/stackup_fragments/  3D stackup YAML fragments concatenated by chiplet-studio
+libs.ref/interconnect_examples/
+    vendorx_on_intm4tm2/                     2nd-vendor (non-IHP) end-to-end demo
 ```
 
 ## How the suite consumes it
@@ -41,9 +48,9 @@ bodies = im.layers_3d("cupillar_opt2")     # [(name, gds_layer, gds_datatype), .
 rules = im.pitch_rules("vendorx_microbump")
 ```
 
-Discovery: tools add `interconnect_pdk/python/` to `sys.path`. The manifest
-is located via `$INTERCONNECT_PDK_ROOT`, a path relative to the module, or a
-sibling-repo search.
+Discovery: tools add `interconnect_pdk/libs.tech/klayout/python/` to
+`sys.path`. The manifest is located via `$INTERCONNECT_PDK_ROOT`, a path
+relative to the module, or a sibling-repo search.
 
 ## Methods
 

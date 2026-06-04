@@ -9,11 +9,10 @@ import pytest
 
 db = pytest.importorskip("klayout.db")
 
-_SCRIPTS = Path(__file__).resolve().parents[1]
-_PY = _SCRIPTS.parent / "python"
-for p in (str(_SCRIPTS), str(_PY)):
-    if p not in sys.path:
-        sys.path.insert(0, p)
+# Both the generator and the manifest reader live in libs.tech/klayout/python.
+_PY = Path(__file__).resolve().parents[1] / "python"
+if str(_PY) not in sys.path:
+    sys.path.insert(0, str(_PY))
 
 import bump3d_generator as b3d  # noqa: E402
 

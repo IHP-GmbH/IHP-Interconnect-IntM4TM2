@@ -27,15 +27,19 @@ import klayout.db as db
 HERE = Path(__file__).resolve()
 
 
+_PY_SUBDIR = ("libs.tech", "klayout", "python")
+
+
 def _locate():
     """Find interconnect_pdk root and the ADK runner via sibling search."""
     pdk_root = None
     adk_runner = None
     for base in HERE.parents:
-        if pdk_root is None and (base / "scripts" / "bump3d_generator.py").is_file():
+        if pdk_root is None and base.joinpath(
+                *_PY_SUBDIR, "bump3d_generator.py").is_file():
             pdk_root = base
-        if pdk_root is None and (base / "interconnect_pdk" / "scripts"
-                                 / "bump3d_generator.py").is_file():
+        if pdk_root is None and (base / "interconnect_pdk").joinpath(
+                *_PY_SUBDIR, "bump3d_generator.py").is_file():
             pdk_root = base / "interconnect_pdk"
         if adk_runner is None:
             cand = base / "adk" / "klayout" / "drc" / "run_drc.py"
@@ -48,8 +52,7 @@ PDK_ROOT, ADK_RUNNER = _locate()
 if PDK_ROOT is None or ADK_RUNNER is None:
     sys.exit("Could not locate interconnect_pdk or the ADK runner (sibling repos).")
 
-sys.path.insert(0, str(PDK_ROOT / "scripts"))
-sys.path.insert(0, str(PDK_ROOT / "python"))
+sys.path.insert(0, str(PDK_ROOT.joinpath(*_PY_SUBDIR)))
 sys.path.insert(0, str(ADK_RUNNER.parent))
 import bump3d_generator as b3d          # noqa: E402
 import interconnect_manifest as im      # noqa: E402

@@ -5,16 +5,17 @@ byte-exact reproduction of the IHP connection-stack literals that the suite
 currently hardcodes (the 0-regression contract).
 
 Runnable two ways:
-  pytest interconnect_pdk/python/tests/test_manifest.py
-  python3 interconnect_pdk/python/tests/test_manifest.py
+  pytest interconnect_pdk/libs.tech/klayout/interconnect_tests/test_manifest.py
+  python3 interconnect_pdk/libs.tech/klayout/interconnect_tests/test_manifest.py
 """
 
 import json
 import sys
 from pathlib import Path
 
-_PKG = Path(__file__).resolve().parents[1]          # interconnect_pdk/python
-_ROOT = _PKG.parent                                  # interconnect_pdk
+_HERE = Path(__file__).resolve()
+_PKG = _HERE.parents[1] / "python"                   # libs.tech/klayout/python
+_ROOT = _HERE.parents[3]                             # interconnect_pdk
 if str(_PKG) not in sys.path:
     sys.path.insert(0, str(_PKG))
 
