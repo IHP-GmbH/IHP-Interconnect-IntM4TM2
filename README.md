@@ -52,14 +52,14 @@ bodies = im.layers_3d("cupillar_opt2")     # [(name, gds_layer, gds_datatype), .
 rules = im.pitch_rules("vendorx_microbump")
 ```
 
-Discovery: tools add `interconnect_pdk/libs.tech/klayout/python/` to
+Discovery: tools add `<this repo>/libs.tech/klayout/python/` to
 `sys.path`. The manifest is located via `$INTERCONNECT_PDK_ROOT`, a path
-relative to the module, or a sibling-repo search. The sibling search keys
-on the conventional directory name, so clone accordingly (or set the
-environment variable):
+relative to the module, or a sibling-repo search. The sibling search
+accepts both the canonical ecosystem name (`interconnect_pdk/`) and the
+repository name (`IHP-Interconnect-IntM4TM2/`), so a default clone works:
 
 ```bash
-git clone git@github.com:IHP-GmbH/IHP-Interconnect-IntM4TM2.git interconnect_pdk
+git clone git@github.com:IHP-GmbH/IHP-Interconnect-IntM4TM2.git
 ```
 
 ## Methods
