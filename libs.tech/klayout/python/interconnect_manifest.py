@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """
 interconnect_manifest.py -- reader API for the interconnect PDK manifest.
 
@@ -14,7 +15,8 @@ Discovery order for the manifest (when no explicit path is given):
   1. $INTERCONNECT_PDK_ROOT/manifest/interconnect_methods.json
   2. the repo's own manifest/ relative to this file
      (this file lives at libs.tech/klayout/python/, the manifest at the root)
-  3. walk parent directories for interconnect_pdk/manifest/interconnect_methods.json
+  3. walk parent directories for a sibling checkout named interconnect_pdk/ or
+     IHP-Interconnect-IntM4TM2/ holding manifest/interconnect_methods.json
      (locates the sibling repo, mirroring how hyp_to_gds discovers gds_to_kicad)
 """
 
@@ -25,7 +27,9 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 _MANIFEST_NAME = "interconnect_methods.json"
-_cache: Dict[str, dict] = {}
+# Keyed by (path, mtime) so an on-disk edit is picked up in a long-lived host
+# rather than serving a stale first-loaded copy.
+_cache: Dict[tuple, dict] = {}
 
 
 # ---------------------------------------------------------------------------
@@ -46,15 +50,23 @@ def find_manifest_path() -> Optional[Path]:
     if cand.exists():
         return cand
 
+    # Accept both the canonical ecosystem name and the upstream repository name,
+    # matching bump_mirror._get_bump3d so the two discovery paths agree.
     for base in [here, *here.parents]:
-        cand = base / "interconnect_pdk" / "manifest" / _MANIFEST_NAME
-        if cand.exists():
-            return cand
+        for name in ("interconnect_pdk", "IHP-Interconnect-IntM4TM2"):
+            cand = base / name / "manifest" / _MANIFEST_NAME
+            if cand.exists():
+                return cand
     return None
 
 
 def load_manifest(path: Optional[str] = None) -> dict:
-    """Load and cache the manifest. Raises FileNotFoundError if not found."""
+    """Load and cache the manifest. Raises FileNotFoundError if not found.
+
+    The cache is keyed by (path, mtime), so editing the manifest on disk in a
+    long-lived host (e.g. the KiCad plugin) is picked up instead of serving the
+    stale first-loaded copy.
+    """
     if path is None:
         found = find_manifest_path()
         if found is None:
@@ -64,10 +76,18 @@ def load_manifest(path: Optional[str] = None) -> dict:
             )
         path = str(found)
     path = str(path)
-    if path not in _cache:
-        with open(path, "r") as f:
-            _cache[path] = json.load(f)
-    return _cache[path]
+    try:
+        mtime = os.path.getmtime(path)
+    except OSError:
+        mtime = None
+    key = (path, mtime)
+    if key not in _cache:
+        try:
+            with open(path, "r") as f:
+                _cache[key] = json.load(f)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Failed to parse manifest {path}: {e}") from e
+    return _cache[key]
 
 
 def clear_cache() -> None:
@@ -105,7 +125,13 @@ def get_method(method_id: str, manifest: Optional[dict] = None) -> dict:
 def get_layer(name: str, manifest: Optional[dict] = None) -> Tuple[int, int]:
     """(gds_layer, gds_datatype) for a 3D layer name. Raises KeyError if unknown."""
     m = manifest or load_manifest()
-    entry = m["layer_registry"][name]
+    try:
+        entry = m["layer_registry"][name]
+    except KeyError:
+        raise KeyError(
+            "Unknown 3D layer '%s'. Known layers: %s"
+            % (name, ", ".join(m["layer_registry"].keys()))
+        )
     return entry["gds_layer"], entry["gds_datatype"]
 
 
@@ -134,7 +160,9 @@ def get_connection_library(manifest: Optional[dict] = None) -> "OrderedDict[str,
         method = get_method(mid, m)
         out[mid] = {
             "description": method["description"],
-            "layers": method["connection_stack"]["layers"],
+            # Copy the layers (list + dicts) so a caller editing/sorting them in
+            # place cannot poison the cached manifest for the next reader.
+            "layers": [dict(layer) for layer in method["connection_stack"]["layers"]],
         }
     return out
 
@@ -144,7 +172,8 @@ def get_connection_stack(method_id: str, manifest: Optional[dict] = None) -> dic
     method = get_method(method_id, manifest)
     return {
         "description": method["description"],
-        "layers": method["connection_stack"]["layers"],
+        # Copy so a caller cannot mutate the cached manifest in place.
+        "layers": [dict(layer) for layer in method["connection_stack"]["layers"]],
     }
 
 
