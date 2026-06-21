@@ -14,12 +14,16 @@ connection stacks, and the bump-to-bump pitch/spacing rules.
 | Concern | Owner |
 |---|---|
 | UBM openings `9/35`, `41/35`, `99/35` (and `/36`); pad-vs-substrate rules (Padc.a/c/d/f) | **interposer** (it fabricates them) |
-| 3D bodies `500/501/502` (plus vendor layers `510/511`); connection stacks; pitch/spacing rules (Padc.b/e, Padb.b/e) | **interconnect_pdk** (this repo) |
+| 3D bodies `500/501/502` (plus vendor layers `510/511`); connection stacks; assembly-time pitch/spacing rules (`IXN.b` / `IXN.e`) | **interconnect_pdk** (this repo) |
 
-The pitch/spacing rules listed above moved out of the interposer PDK because
-they govern the relationship *between* attachment points; the pad-vs-substrate
-rules that constrain a single opening against the substrate stay on the
-interposer.
+The assembly-time pitch/spacing rules live here as `IXN.b` (spacing) and
+`IXN.e` (pitch) because they govern the relationship *between* attachment
+points; the pad-vs-substrate rules that constrain a single opening against the
+substrate stay on the interposer. The interposer still keeps its own `Padc.b` /
+`Padc.e` copies for the standalone cu-pillar pre-DRC in `bump_mirror.py`, so the
+rules are mirrored across the split (`Padc.b` <-> `IXN.b`, `Padc.e` <-> `IXN.e`);
+`interconnect_rules.json` mirrors the manifest `pitch_rules`, and a test in
+`test_manifest.py` guards the two against drift.
 
 ## Layout
 
@@ -64,12 +68,13 @@ Discovery of the manifest, when no explicit path is given, follows three tiers
 
 1. `$INTERCONNECT_PDK_ROOT/manifest/interconnect_methods.json`
 2. the repo's own `manifest/`, three levels up from the Python module
-3. a parent-directory walk for a sibling `interconnect_pdk/manifest/`
+3. a parent-directory walk for a sibling checkout named `interconnect_pdk/` or
+   `IHP-Interconnect-IntM4TM2/`, holding `manifest/`
 
-The sibling walk searches **only** for `interconnect_pdk/`; it does not accept
-the repository name `IHP-Interconnect-IntM4TM2/`. A default clone keeps the
-repo name, so either rename the checkout to `interconnect_pdk/` or set
-`INTERCONNECT_PDK_ROOT`:
+The sibling walk accepts both the canonical name `interconnect_pdk/` and the
+default clone name `IHP-Interconnect-IntM4TM2/`, matching the interposer's
+`bump_mirror._get_bump3d` discovery, so a default clone resolves without a
+rename. `INTERCONNECT_PDK_ROOT` still takes precedence:
 
 ```bash
 git clone git@github.com:IHP-GmbH/IHP-Interconnect-IntM4TM2.git

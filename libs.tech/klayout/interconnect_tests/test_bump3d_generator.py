@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """Tests for bump3d_generator: IHP default bodies, no-cap skip, vendor bodies,
 and manifest-method bridge. Requires klayout.db (runs on host)."""
 
@@ -59,3 +60,19 @@ def test_bodies_for_method_reads_manifest():
     assert {(l, d) for (_, l, d) in bodies} == {(510, 35), (511, 35)}
     cu_bodies = b3d.bodies_for_method("cupillar_opt2")
     assert {(l, d) for (_, l, d) in cu_bodies} == {(500, 35), (501, 35)}
+
+
+def test_default_body_geometry():
+    """Guard the geometry, not just layer presence: the IHP default body is a
+    circle of the requested radius with the requested tessellation, so a radius
+    or point-count regression that keeps the layers is still caught (this is the
+    byte-exact pre-split reproduction the layer-only tests cannot protect)."""
+    layout, cell = _empty()
+    b3d.add_3d_bodies(layout, cell, 22.0, num_points=128)
+    region = db.Region(cell.begin_shapes_rec(layout.layer(500, 35)))
+    bbox = region.bbox()
+    # dbu = 0.001 um, so a 22 um radius circle spans 44 um = 44000 dbu.
+    assert abs(bbox.width() - 44000) <= 50, bbox.width()
+    assert abs(bbox.height() - 44000) <= 50, bbox.height()
+    polys = list(region.each())
+    assert len(polys) == 1 and polys[0].num_points() == 128

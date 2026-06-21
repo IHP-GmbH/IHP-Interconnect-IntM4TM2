@@ -5,7 +5,7 @@ touching the interposer**.
 
 ## What it shows
 
-Two pads at 50 µm pitch on a real IHP interposer (UBM openings `9/35 ∩ 41/35` —
+Two pads at 50 µm pitch on a real IHP interposer (UBM openings `9/35 ∩ 41/35`,
 the region the `intm4tm2` adapter exposes as
 `chiplet_attachment_input`) with VendorX microbump 3D bodies (`510/511`). The ADK
 assembly DRC runs twice over the **same geometry** with the **same interposer
@@ -38,5 +38,5 @@ interconnect:
 and on each die `connection: vendorx_microbump`. The orchestrator forwards
 `--interconnect-adapter vendorx_microbump` to the ADK DRC; `hyp_to_gds` emits the
 `510/511` bodies and the vendorx connection_stack from the manifest. Adding or
-swapping a vendor needs **no code change** — only manifest data plus an adapter
+swapping a vendor needs **no code change**; only manifest data plus an adapter
 file. See `vendorx_demo.chiplet`.
