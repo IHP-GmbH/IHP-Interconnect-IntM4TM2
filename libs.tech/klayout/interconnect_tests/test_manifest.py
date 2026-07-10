@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """
 Validate interconnect_methods.json: schema, cross-field invariants, and
 byte-exact reproduction of the IHP connection-stack literals that the suite
@@ -13,6 +14,8 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
 _HERE = Path(__file__).resolve()
 _PKG = _HERE.parents[1] / "python"                   # libs.tech/klayout/python
 _ROOT = _HERE.parents[3]                             # interconnect_pdk
@@ -23,6 +26,8 @@ import interconnect_manifest as im  # noqa: E402
 
 MANIFEST_PATH = _ROOT / "manifest" / "interconnect_methods.json"
 SCHEMA_PATH = _ROOT / "manifest" / "schema" / "interconnect_methods.schema.json"
+RULES_PATH = (_ROOT / "libs.tech" / "klayout" / "tech" / "drc" /
+              "rule_decks" / "interconnect_rules.json")
 
 
 # ---------------------------------------------------------------------------
@@ -68,12 +73,9 @@ def _manifest():
 
 
 def test_schema_validation():
-    """Manifest validates against the JSON schema (skipped if jsonschema absent)."""
-    try:
-        import jsonschema
-    except ImportError:
-        print("SKIP schema validation: jsonschema not installed")
-        return
+    """Manifest validates against the JSON schema (a real SKIP, not a false
+    PASS, when jsonschema is absent)."""
+    jsonschema = pytest.importorskip("jsonschema")
     manifest = json.loads(MANIFEST_PATH.read_text())
     schema = json.loads(SCHEMA_PATH.read_text())
     jsonschema.validate(instance=manifest, schema=schema)
@@ -155,6 +157,41 @@ def test_loader_api():
     assert im.fab_params("cupillar_opt1", m)["passiv_opening_um"] == 35.0
 
 
+def test_interconnect_rules_mirror_manifest():
+    """interconnect_rules.json (read by bump_pitch.drc) must not drift from the
+    manifest, which it declares to be the source of truth. The byte-exact gate
+    does NOT pin pitch_rules, so an author could retune a manifest pitch and
+    leave the DRC deck validating stale numbers; this catches that."""
+    m = _manifest()
+    rules = json.loads(RULES_PATH.read_text())
+    assert rules["default_method"] == m["default_method"], "default_method drift"
+    assert set(rules["methods"].keys()) == set(m["methods"].keys()), \
+        "method-id set drift between interconnect_rules.json and the manifest"
+    for mid, r in rules["methods"].items():
+        pr = im.pitch_rules(mid, m)
+        assert r["IXN_spacing"] == pr["IXN_spacing"], "%s IXN_spacing drift" % mid
+        assert r["IXN_pitch"] == pr["IXN_pitch"], "%s IXN_pitch drift" % mid
+        assert r["IXN_pad_size"] == im.fab_params(mid, m)["passiv_opening_um"], \
+            "%s IXN_pad_size drift vs fab_params.passiv_opening_um" % mid
+
+
+def test_connection_stack_matches_layers_3d_and_body_diameter():
+    """Cross-field invariants the schema cannot express: per method the
+    connection_stack layer names equal layers_3d (order + membership), and every
+    stack layer diameter equals body_diameter_um."""
+    m = _manifest()
+    for mid, method in m["methods"].items():
+        stack_names = [layer["name"] for layer in method["connection_stack"]["layers"]]
+        assert stack_names == method["layers_3d"], \
+            "%s: connection_stack names %s != layers_3d %s" % (
+                mid, stack_names, method["layers_3d"])
+        body = float(method["body_diameter_um"])
+        for layer in method["connection_stack"]["layers"]:
+            assert float(layer["diameter"]) == body, \
+                "%s: layer %s diameter %s != body_diameter_um %s" % (
+                    mid, layer["name"], layer["diameter"], body)
+
+
 if __name__ == "__main__":
     failures = 0
     for name, fn in sorted(globals().items()):
@@ -162,7 +199,11 @@ if __name__ == "__main__":
             try:
                 fn()
                 print("PASS %s" % name)
-            except Exception as e:  # noqa: BLE001
-                failures += 1
-                print("FAIL %s: %s" % (name, e))
+            except BaseException as e:  # noqa: BLE001
+                # A pytest skip (e.g. jsonschema absent) is not a failure.
+                if type(e).__name__ == "Skipped":
+                    print("SKIP %s: %s" % (name, e))
+                else:
+                    failures += 1
+                    print("FAIL %s: %s" % (name, e))
     sys.exit(1 if failures else 0)

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """
 bump3d_generator.py -- 3D interconnect body generator.
 
@@ -21,9 +22,12 @@ except ImportError:
     db = None
 
 
-# IHP cu-pillar default bodies. Mirrors the manifest layer_registry entries for
-# the IHP methods; kept here so the generator works standalone (no manifest
-# import needed for the common case).
+# IHP cu-pillar default bodies, kept here so the generator works standalone (no
+# manifest import needed for the common case). The GDS (layer, datatype) pairs
+# match the manifest layer_registry (CuPillar 500/35, SnAgCap 501/35); the names
+# carry the KLayout ':pillar' display suffix that the manifest registry keys
+# intentionally drop. The byte-exact contract is layer/datatype-based, so the
+# suffix does not affect GDS output.
 IHP_CUPILLAR_3D_LAYERS = (
     ("CuPillar:pillar", 500, 35),
     ("SnAgCap:pillar", 501, 35),
