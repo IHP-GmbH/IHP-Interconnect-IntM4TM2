@@ -9,6 +9,11 @@ It is split out of the interposer PDK so the bumping method can come from
 (the UBM openings it fabricates); this PDK says *how*, via the 3D bodies, the
 connection stacks, and the bump-to-bump pitch/spacing rules.
 
+## Status
+
+> [!WARNING]
+> IHP-Interconnect-IntM4TM2 is currently a preview release only!
+
 ## What lives here vs. the interposer
 
 | Concern | Owner |
