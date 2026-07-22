@@ -101,7 +101,7 @@ aluminum BEOL interposer.
 | `cupillar_opt2` | PacTech (IHP) | CuPillar `500/35`, SnAgCap `501/35` | yes (default method) |
 | `cupillar_opt3` | PacTech (IHP) | CuPillar `500/35`, SnAgCap `501/35` | yes |
 | `sbump_sac305` | PacTech (IHP) | SolderBall `502/36` | yes |
-| `vendorx_microbump` | VendorX Microsystems (DEMO / non-IHP) | VendorXBumpCu `510/35`, VendorXBumpCap `511/35` | no |
+| `vendorx_microbump` | 'VendorX' (DEMO / non-IHP) | VendorXBumpCu `510/35`, VendorXBumpCap `511/35` | no |
 
 ## ADK relationship
 
