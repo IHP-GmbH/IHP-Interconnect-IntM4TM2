@@ -1,0 +1,49 @@
+name: tests
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # This repository depends on nothing: no KLayout, no PDK root, no sibling
+      # checkout, no fixtures on disk. Keep it that way. If a test here ever
+      # needs one of those, it belongs in the cross-repo integration job in
+      # ADK-Tools instead, where the siblings actually exist.
+      - name: Install dependencies
+        run: pip install pytest jsonschema
+
+      # pytest.ini names both test roots, so this is the complete suite: the
+      # manifest contract and 3D body generator under libs.tech/klayout, and the
+      # OpenROAD bump LEF generator under libs.tech/openroad.
+      - name: Run tests
+        run: pytest -q
+
+  # The one required status check. It exists so the ruleset can require a single
+  # stable context name while the jobs behind it change, and so that no required
+  # check is slower than the suite it gates.
+  ci-gate:
+    needs: [tests]
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require every gating job to have succeeded
+        # `needs` alone would let a skipped or cancelled job pass as not-failed,
+        # so the result is compared explicitly.
+        run: |
+          echo "tests: ${{ needs.tests.result }}"
+          test "${{ needs.tests.result }}" = "success"
