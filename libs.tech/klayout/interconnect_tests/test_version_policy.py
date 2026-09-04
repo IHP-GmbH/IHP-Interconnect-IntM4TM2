@@ -52,8 +52,6 @@ ACCEPT_SILENT = [
     ("1.0.0",   "1.0", "1.0"),   # PATCH ignored
     ("1.0.5",   "1.0", "1.0"),   # PATCH ignored, any value
     ("1.0.99",  "1.0", "1.0"),
-    (" 1.0 ",   "1.0", "1.0"),   # padded: laxer than the schema pattern on
-                                 # purpose, matching chiplet-spec (SPEC-2)
     ("1.1",     "1.2", "1.1"),   # same major, LOWER minor
     ("1.0",     "1.2", "1.0"),
     ("2.3",     "2.3", "2.3"),   # supported need not be 1.x
@@ -95,6 +93,15 @@ REFUSE = [
     ("1. 0",      "1.0"),   # inner whitespace
     ("1.\u0660",  "1.0"),  # ARABIC-INDIC DIGIT ZERO
     ("\uff11.\uff10", "1.0"),  # FULLWIDTH DIGIT ONE / ZERO
+    # Padding. Refused since SPEC-2 resolved strict (chiplet-spec 5fa0ced) and
+    # this reader dropped its .strip() to follow. The trailing-newline case is
+    # the one that matters in practice: Python's `$` in the schema pattern also
+    # matches just before a final newline, so "1.0\n" passed BOTH the schema and
+    # this reader until chiplet-spec re-anchored the pattern to (?![\s\S]).
+    (" 1.0",      "1.0"),
+    ("1.0 ",      "1.0"),
+    ("1.0\n",     "1.0"),
+    (" 1.0 ",     "1.0"),
 ]
 
 
@@ -262,6 +269,33 @@ def test_on_warn_receives_every_event_undeduped():
     assert len(events) == 3, events
 
 
+def test_escalating_host_refuses_every_read_not_just_the_first():
+    """A host running -W error must get the SAME verdict on every read.
+
+    The warn-once key must be recorded only after the warning is delivered.
+    Recorded first, warnings.warn raises on read 1 with the key already set, so
+    read 2 skips the warn and returns the version silently: refused once, then
+    accepted forever. Measured on the shipped reader before the fix.
+    """
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        for n in (1, 2, 3):
+            with pytest.raises(im.ManifestVersionWarning):
+                im.check_schema_version("1.5", "1.0", name="m.json")
+
+
+def test_normal_host_still_warns_exactly_once():
+    """The property the ordering must not cost: dedup still works when the
+    warning does not raise, so a long-lived host does not repeat it per call."""
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        for _ in range(3):
+            assert im.check_schema_version("1.5", "1.0", name="m.json") == "1.5"
+    hits = [w for w in caught
+            if issubclass(w.category, im.ManifestVersionWarning)]
+    assert len(hits) == 1, [str(w.message) for w in caught]
+
+
 def test_supported_is_resolved_per_call():
     """A host that rebinds the constant is honoured, so the default is not
     frozen at definition time."""
@@ -329,11 +363,15 @@ def test_parity_with_reference():
 #: kept, with its assertion inverted, because these are exactly the values a
 #: future `int(part)` would silently readmit.
 #:
-#: A padded " 1.0 " is deliberately NOT here: chiplet-spec's sidecar parser
-#: strips on purpose and has a test saying whitespace is not a version change,
-#: so both readers stay laxer than the schema pattern there and chiplet-spec
-#: tracks the gap as SPEC-2. Tightening it here alone would be the same
-#: parity divergence in the other direction.
+#: A padded " 1.0 " is deliberately NOT here either, but for the opposite
+#: reason it used to be. This note previously said padding was tolerated
+#: because chiplet-spec's sidecar parser stripped on purpose, so both readers
+#: sat laxer than the schema pattern and SPEC-2 tracked the gap. SPEC-2 then
+#: resolved in the STRICT direction and the strip went away on both sides, so
+#: the padded spellings are now plain REFUSE rows in the table above rather
+#: than a tolerated divergence. They are not `int()` permissivity: `int(" 1")`
+#: succeeds, but so does the schema pattern's refusal and every reader's, and
+#: this list exists only for the values where `int()` alone would readmit.
 INT_PERMISSIVITY = ["+1.0", "1.0_0", "1. 0", "1.\u0660", "\uff11.\uff10"]
 
 

@@ -55,10 +55,16 @@ class ManifestVersionError(ValueError):
     """The manifest declares a schema_version this reader must not read.
 
     Subclasses ValueError, not KeyError, on purpose. Consumers wrap manifest
-    access in ``except KeyError`` to mean "unknown method" (hyp_to_gds's
-    _connection_to_body_diameter and the ADK's chiplet2dbx both do), so a
-    refusal raised as KeyError would be downgraded into a silently empty result
-    and the run would finish at exit 0 with the bump bodies missing.
+    access in ``except KeyError`` to mean "unknown method" and fall back to a
+    default or to an empty result, so a refusal raised as KeyError would be
+    swallowed by that handler and the run would finish at exit 0 with the bump
+    bodies missing.
+
+    Stated as a shape and not as a list of call sites: any caller that reads
+    KeyError as "not in the registry" turns a version refusal into missing
+    geometry. This docstring named two such functions until a consumer checked
+    them and found one of the two wrong. They live in repositories this one does
+    not control, so nothing here can keep such a list true.
 
     Scope: this closes that path for the VERSION only. A manifest that declares
     a supported version but is structurally broken still reaches the same
@@ -95,13 +101,13 @@ def _parse_contract_version(value: Any) -> Optional[Tuple[int, int]]:
     """
     if not isinstance(value, str):
         return None
-    # .strip() is kept to match chiplet-spec's sidecar parser, which documents
-    # surrounding whitespace as "not a version change" and has a test saying so.
-    # It is the one place both readers stay laxer than the shared schema pattern,
-    # which refuses a padded value; chiplet-spec tracks that as SPEC-2. Flipping
-    # it here alone would recreate, in the other direction, the reader-parity
-    # divergence this function was tightened to close.
-    parts = value.strip().split(".")
+    # No .strip(). This briefly kept one to match chiplet-spec's sidecar parser,
+    # which tolerated padding deliberately; SPEC-2 then resolved in the STRICT
+    # direction (chiplet-spec 5fa0ced) and the padding tolerance went away on
+    # that side, so parity now requires dropping it here too. The schema pattern
+    # always refused a padded value, so this is the third implementation joining
+    # the two that already agreed, the same shape as the ASCII-digit fix below.
+    parts = value.split(".")
     if len(parts) not in (2, 3):
         return None
     # ASCII digits only, checked BEFORE int(). int() is far more permissive than
@@ -166,8 +172,16 @@ def check_schema_version(value: Any, supported: Optional[str] = None, *,
             on_warn(msg)
         key = (name, normalized)
         if key not in _WARNED_VERSIONS:
-            _WARNED_VERSIONS.add(key)
+            # Warn FIRST, record the key only once the warning has been
+            # delivered. Recording first looks equivalent and is not: under a
+            # host that escalates warnings, warnings.warn RAISES, and with the
+            # key already recorded every later read skips the warn entirely and
+            # returns the version silently. So the first read refused and the
+            # rest accepted, which is worse than either verdict on its own.
+            # This ordering makes an escalating host refuse every read and a
+            # normal host still warn exactly once.
             warnings.warn(msg, ManifestVersionWarning, stacklevel=2)
+            _WARNED_VERSIONS.add(key)
     return normalized
 # Keyed by (path, sha256 of the file's bytes), NOT by mtime. An mtime key is
 # not sound here: cp -p, rsync -a, tar -x and a second-resolution filesystem all
