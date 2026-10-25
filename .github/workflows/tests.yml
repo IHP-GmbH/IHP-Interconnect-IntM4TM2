@@ -27,7 +27,7 @@ jobs:
       - name: Install dependencies
         run: pip install pytest jsonschema
 
-      # pytest.ini names both test roots, so this is the complete suite: the
+      # pyproject.toml names both test roots, so this is the complete suite: the
       # manifest contract and 3D body generator under libs.tech/klayout, and the
       # OpenROAD bump LEF generator under libs.tech/openroad.
       - name: Run tests

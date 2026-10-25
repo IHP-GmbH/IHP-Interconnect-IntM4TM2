@@ -95,13 +95,21 @@ microbump that is defined but deliberately excluded from the default library; it
 demonstrates that the method is swappable on the same IHP 130-nm IntM4TM2
 aluminum BEOL interposer.
 
-| Method id | Vendor | 3D bodies | In default library |
-|---|---|---|---|
-| `cupillar_opt1` | PacTech (IHP) | CuPillar `500/35`, SnAgCap `501/35` | yes |
-| `cupillar_opt2` | PacTech (IHP) | CuPillar `500/35`, SnAgCap `501/35` | yes (default method) |
-| `cupillar_opt3` | PacTech (IHP) | CuPillar `500/35`, SnAgCap `501/35` | yes |
-| `sbump_sac305` | PacTech (IHP) | SolderBall `502/36` | yes |
-| `vendorx_microbump` | 'VendorX' (DEMO / non-IHP) | VendorXBumpCu `510/35`, VendorXBumpCap `511/35` | no |
+| Method id | Vendor | 3D bodies | In default library | Die processes |
+|---|---|---|---|---|
+| `cupillar_opt1` | PacTech (IHP) | CuPillar `500/35`, SnAgCap `501/35` | yes | `sg13g2` |
+| `cupillar_opt2` | PacTech (IHP) | CuPillar `500/35`, SnAgCap `501/35` | yes (default method) | `sg13g2` |
+| `cupillar_opt3` | PacTech (IHP) | CuPillar `500/35`, SnAgCap `501/35` | yes | `sg13g2` |
+| `sbump_sac305` | PacTech (IHP) | SolderBall `502/36` | yes | `sg13g2` |
+| `vendorx_microbump` | 'VendorX' (DEMO / non-IHP) | VendorXBumpCu `510/35`, VendorXBumpCap `511/35` | no | none stated |
+
+`die_processes` (contract 1.1) lists the die process ids a method attaches, as
+the assembly document keys its technologies (`sg13g2` is the IHP SG13G2 die).
+Ids, not versions. A method that states none is refused by a strict consumer
+for every die; absence never means any process, and an empty list is refused
+by the schema. The demo entry deliberately states none, so the shipped
+registry carries one entry in each state. Reader: `die_processes(method_id)`
+returns the tuple, or `None` when the method states none.
 
 ## ADK relationship
 
