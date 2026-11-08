@@ -1,0 +1,57 @@
+# SPDX-License-Identifier: Apache-2.0
+
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "intm4tm2-interconnect"
+dynamic = ["version"]
+description = "Interconnection PDK for chiplet-on-interposer assembly on the IHP IntM4TM2 interposer: Cu pillars, solder bumps and microbumps."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+# klayout for the 3D body generator's tests (they skip without it), jsonschema
+# for the manifest schema checks. One requirement per entry, no markers.
+dependencies = ["klayout", "jsonschema"]
+
+[project.optional-dependencies]
+test = ["pytest>=7"]
+
+# Nothing is installed as a module. The PDK is used in place from libs.tech,
+# and each suite puts its python directory on sys.path itself.
+[tool.setuptools]
+py-modules = []
+
+[tool.setuptools.dynamic]
+version = { file = "VERSION" }
+
+[tool.pytest.ini_options]
+# Two test roots, and both belong in a run. The OpenROAD LEF generator tests
+# live outside libs.tech/klayout, so every invocation that cd's into that
+# directory and names interconnect_tests has been missing them: seven tests that
+# no gate in the ecosystem reached. Listing both here makes a plain `pytest` at
+# the repository root the complete run.
+testpaths = ["libs.tech/klayout/interconnect_tests", "libs.tech/openroad/openroad_tests"]
+# -ra prints the reason for every skipped test; --strict-markers and
+# --strict-config turn a typo in a marker or an ini key into an error instead of
+# a silently ignored line. No case starts an external tool, so there is no
+# default -m. needs_sibling_sources stays selected: the tiered runner ANDs a
+# default -m with its own selection, and its T1 is exactly those cases.
+addopts = ["-ra", "--strict-markers", "--strict-config"]
+markers = [
+    "needs_sibling_sources: checks this repository against a sibling used as an oracle (chiplet-spec's reference reader); skips when it is not importable",
+]
+
+# The skips the tiered runner accepts, each a reason fragment and a node id
+# fragment; any other skip fails the tier. None: T0 deselects the parity case,
+# and T1 installs the reference it imports.
+[tool.tierrun]
+declared-skips = []
+
+# Each mutation must turn its tier red on the runner: with the padding
+# tolerance back, the padded version strings in test_version_policy's REFUSE
+# table are accepted.
+mutations = [
+    {name = "version-strip-restored", path = "libs.tech/klayout/python/interconnect_manifest.py", old = "    parts = value.split(\".\")\n", new = "    parts = value.strip().split(\".\")\n", tiers = ["T0"]},
+]

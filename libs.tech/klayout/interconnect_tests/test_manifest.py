@@ -12,6 +12,7 @@ Runnable two ways:
 
 import json
 import sys
+import warnings
 from pathlib import Path
 
 import pytest
@@ -192,18 +193,44 @@ def test_connection_stack_matches_layers_3d_and_body_diameter():
                     mid, layer["name"], layer["diameter"], body)
 
 
+def test_die_processes_on_every_library_method_and_none_on_the_demo():
+    """Contract 1.1: each library method states the die process it attaches,
+    as the assembly document keys its technologies; the fictional demo states
+    none, so the shipped registry carries one entry in each state and "absent
+    means not stated" is testable on real data."""
+    m = _manifest()
+    for mid in m["default_connection_library"]:
+        assert m["methods"][mid]["die_processes"] == ["sg13g2"], mid
+        assert im.die_processes(mid, m) == ("sg13g2",), mid
+    assert "die_processes" not in m["methods"]["vendorx_microbump"]
+    assert im.die_processes("vendorx_microbump", m) is None
+
+
+def test_a_1p0_reader_reads_the_shipped_manifest_with_one_warning():
+    """The policy's promise on real data: the version gate of a consumer still
+    pinned at 1.0 passes the 1.1 manifest with one warning, never a refusal
+    (additive MINOR)."""
+    im._reset_version_warnings()
+    version = json.loads(MANIFEST_PATH.read_text())["schema_version"]
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        assert im.check_schema_version(version, "1.0") == "1.1"
+    warned = [w for w in caught if issubclass(w.category, im.ManifestVersionWarning)]
+    assert len(warned) == 1, [str(w.message) for w in caught]
+
+
+@pytest.mark.parametrize("bad", [[], ["sg13g2", "sg13g2"], [1], "sg13g2", [""]],
+                         ids=["empty", "duplicate", "number", "string", "blank"])
+def test_schema_refuses_a_malformed_die_processes(bad):
+    """Absence is the only spelling of "not stated": an empty list, a repeat,
+    a non-string, a bare string and a blank id are all refused by the schema."""
+    jsonschema = pytest.importorskip("jsonschema")
+    manifest = json.loads(MANIFEST_PATH.read_text())
+    schema = json.loads(SCHEMA_PATH.read_text())
+    manifest["methods"]["cupillar_opt1"]["die_processes"] = bad
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=manifest, schema=schema)
+
+
 if __name__ == "__main__":
-    failures = 0
-    for name, fn in sorted(globals().items()):
-        if name.startswith("test_") and callable(fn):
-            try:
-                fn()
-                print("PASS %s" % name)
-            except BaseException as e:  # noqa: BLE001
-                # A pytest skip (e.g. jsonschema absent) is not a failure.
-                if type(e).__name__ == "Skipped":
-                    print("SKIP %s: %s" % (name, e))
-                else:
-                    failures += 1
-                    print("FAIL %s: %s" % (name, e))
-    sys.exit(1 if failures else 0)
+    sys.exit(pytest.main([__file__, "-q"]))

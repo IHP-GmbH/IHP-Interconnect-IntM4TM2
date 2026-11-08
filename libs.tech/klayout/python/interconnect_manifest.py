@@ -4,12 +4,20 @@
 interconnect_manifest.py -- reader API for the interconnect PDK manifest.
 
 Single source of truth for interconnection methods (Cu pillars, solder
-bumps, microbumps). Tools across the suite (hyp_to_gds.py, bump_mirror.py,
-chiplet_writer.py, the KiCad plugin) import this instead of hardcoding
-cupillar_opt1/2/3 tables.
+bumps, microbumps). Consumers import this instead of hardcoding the
+cupillar_opt1/2/3 tables: the KiCad plugin's hyp_to_gds.py and
+chiplet_writer.py, this repo's bump_lef_generator.py, and the vendorx demo.
+(The interposer's bump_mirror.py imports bump3d_generator for the 3D bodies
+but never loads the manifest, so it is not gated by anything here.)
 
-Pure standard library (json + pathlib + os) so it imports cleanly inside
-KiCad's bundled Python. No third-party dependencies.
+Standard library only, so it imports cleanly inside KiCad's bundled Python.
+
+The manifest's ``schema_version`` is gated on load with the shared ecosystem
+version policy (see SUPPORTED_SCHEMA_VERSION). The policy is implemented here
+rather than imported, because this repository deliberately depends on nothing;
+``interconnect_tests/test_version_policy.py`` freezes the semantics as a truth
+table and, when a chiplet-spec checkout happens to be importable, additionally
+asserts parity against ``chiplet_format_io.check_contract_version``.
 
 Discovery order for the manifest (when no explicit path is given):
   1. $INTERCONNECT_PDK_ROOT/manifest/interconnect_methods.json
@@ -20,15 +28,159 @@ Discovery order for the manifest (when no explicit path is given):
      (locates the sibling repo, mirroring how hyp_to_gds discovers gds_to_kicad)
 """
 
+import hashlib
 import json
 import os
+import warnings
 from collections import OrderedDict
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 _MANIFEST_NAME = "interconnect_methods.json"
-# Keyed by (path, mtime) so an on-disk edit is picked up in a long-lived host
-# rather than serving a stale first-loaded copy.
+
+#: The manifest contract version this reader understands.
+#:
+#: This is NOT a membership test. WHICH versions are accepted is the shared
+#: version policy the schema's own ``schema_version`` description points at:
+#: same major with a minor at or below this one is accepted silently, same major
+#: with a HIGHER minor is accepted with a warning (the manifest may carry
+#: additions this reader does not understand), a different major is refused, and
+#: PATCH is ignored throughout. An exact-match tuple would refuse "1.1.1" and
+#: "1.2", both of which the schema promises a consumer must accept.
+#:
+#: 1.1 added the optional per-method ``die_processes`` list (see
+#: :func:`die_processes`). A 1.0 reader's version gate passes a 1.1 manifest
+#: with one warning; a validator holding the 1.0 schema still refuses it,
+#: because 1.0 closes each method object to new keys.
+SUPPORTED_SCHEMA_VERSION = "1.1"
+
+
+class ManifestVersionError(ValueError):
+    """The manifest declares a schema_version this reader must not read.
+
+    Subclasses ValueError, not KeyError, on purpose. Consumers wrap manifest
+    access in ``except KeyError`` to mean "unknown method" and fall back to a
+    default or to an empty result, so a refusal raised as KeyError would be
+    swallowed by that handler and the run would finish at exit 0 with the bump
+    bodies missing.
+
+    Stated as a shape and not as a list of call sites: any caller that reads
+    KeyError as "not in the registry" turns a version refusal into missing
+    geometry. This docstring named two such functions until a consumer checked
+    them and found one of the two wrong. They live in repositories this one does
+    not control, so nothing here can keep such a list true.
+
+    Scope: this closes that path for the VERSION only. A manifest that declares
+    a supported version but is structurally broken still reaches the same
+    handlers; structural validation is a separate change.
+    """
+
+
+class ManifestVersionWarning(UserWarning):
+    """The manifest is a same-major newer minor than this reader supports."""
+
+
+# Warn-once keys, (name, normalized version). Mirrors the reference reader so a
+# long-lived host (the KiCad plugin) does not repeat one warning per call.
+_WARNED_VERSIONS = set()
+
+
+def _reset_version_warnings() -> None:
+    """Clear the warn-once dedup set (test hook, mirroring the reference)."""
+    _WARNED_VERSIONS.clear()
+
+
+def _parse_contract_version(value: Any) -> Optional[Tuple[int, int]]:
+    """Parse "MAJOR.MINOR" or "MAJOR.MINOR.PATCH" into (major, minor).
+
+    Returns None if the value is not a well-formed version string. PATCH is
+    parsed only to be discarded: a patch never changes what a consumer may
+    assume, so it must never change a verdict either.
+
+    A non-string is NOT coerced. The manifest is JSON, where an unquoted 1.10 is
+    the number 1.1 with no way back, so a bare number is malformed here.
+    """
+    if not isinstance(value, str):
+        return None
+    # No .strip(): the schema pattern refuses a padded value, so this reader
+    # refuses it as well.
+    parts = value.split(".")
+    if len(parts) not in (2, 3):
+        return None
+    # ASCII digits only, checked BEFORE int(). int() also takes a sign,
+    # underscore separators, surrounding whitespace and non-ASCII digits, none
+    # of which the schema pattern allows; a version string the schema refuses
+    # must not load here and then throw in a stricter host.
+    if not all(part.isascii() and part.isdigit() for part in parts):
+        return None
+    numbers = [int(p) for p in parts]
+    return (numbers[0], numbers[1])
+
+
+def check_schema_version(value: Any, supported: Optional[str] = None, *,
+                         name: str = _MANIFEST_NAME,
+                         on_warn: Optional[Callable[[str], None]] = None) -> str:
+    """Apply the shared version policy; return the normalized "MAJOR.MINOR".
+
+    Same rule every governed sidecar in the ecosystem uses, and the same one the
+    schema's ``schema_version`` description names: a quoted MAJOR.MINOR or
+    MAJOR.MINOR.PATCH string; same major with a minor at or below ``supported``
+    accepted silently; same major with a higher minor accepted with a warning; a
+    different major (higher OR lower), a missing value or a malformed one
+    refused with :class:`ManifestVersionError`; PATCH ignored throughout.
+
+    ``supported`` defaults to :data:`SUPPORTED_SCHEMA_VERSION` and is resolved
+    per call, so a host that rebinds the constant is honoured. ``on_warn``
+    receives every warning event undeduped, mirroring the reference reader, so a
+    caller can take this verdict while keeping its own warning channel.
+    """
+    if supported is None:
+        supported = SUPPORTED_SCHEMA_VERSION
+    sup = _parse_contract_version(supported)
+    if sup is None:
+        raise ValueError(
+            "supported version %r for %s is not a \"MAJOR.MINOR\" string"
+            % (supported, name))
+    sup_major, sup_minor = sup
+    if value is None:
+        raise ManifestVersionError(
+            "%s: missing required key: schema_version" % name)
+    parsed = _parse_contract_version(value)
+    if parsed is None:
+        raise ManifestVersionError(
+            "%s: malformed schema_version %r; expected a quoted "
+            "\"MAJOR.MINOR\" or \"MAJOR.MINOR.PATCH\" string" % (name, value))
+    major, minor = parsed
+    if major != sup_major:
+        raise ManifestVersionError(
+            "%s: unsupported schema_version %r; this reader supports major %d "
+            "(e.g. %r)" % (name, value, sup_major, supported))
+    normalized = "%d.%d" % (major, minor)
+    if minor > sup_minor:
+        msg = ("%s: schema_version %r is newer than this reader's %r (same "
+               "major %d); reading it as %r and ignoring unknown additions"
+               % (name, value, supported, major, supported))
+        if on_warn is not None:
+            on_warn(msg)
+        key = (name, normalized)
+        if key not in _WARNED_VERSIONS:
+            # Warn FIRST, record the key only once the warning has been
+            # delivered. Recording first looks equivalent and is not: under a
+            # host that escalates warnings, warnings.warn RAISES, and with the
+            # key already recorded every later read skips the warn entirely and
+            # returns the version silently. So the first read refused and the
+            # rest accepted, which is worse than either verdict on its own.
+            # This ordering makes an escalating host refuse every read and a
+            # normal host still warn exactly once.
+            warnings.warn(msg, ManifestVersionWarning, stacklevel=2)
+            _WARNED_VERSIONS.add(key)
+    return normalized
+# Keyed by (path, sha256 of the file's bytes), NOT by mtime. An mtime key is
+# not sound here: cp -p, rsync -a, tar -x and a second-resolution filesystem all
+# reproduce a changed file under an unchanged mtime, and the reader would then
+# serve the previous content -- including its previous schema_version, which
+# silently defeats the gate below. Hashing costs one read of a ~6 KB file and
+# the cache still saves the parse, which is the expensive half.
 _cache: Dict[tuple, dict] = {}
 
 
@@ -61,11 +213,14 @@ def find_manifest_path() -> Optional[Path]:
 
 
 def load_manifest(path: Optional[str] = None) -> dict:
-    """Load and cache the manifest. Raises FileNotFoundError if not found.
+    """Load and cache the manifest, gated on the version policy.
 
-    The cache is keyed by (path, mtime), so editing the manifest on disk in a
-    long-lived host (e.g. the KiCad plugin) is picked up instead of serving the
-    stale first-loaded copy.
+    Raises FileNotFoundError if not found, and ManifestVersionError if the
+    manifest declares a schema_version this reader must not read.
+
+    The cache is keyed by (path, sha256 of the file's bytes), so editing the
+    manifest on disk in a long-lived host (e.g. the KiCad plugin) is picked up
+    instead of serving the stale first-loaded copy.
     """
     if path is None:
         found = find_manifest_path()
@@ -76,18 +231,30 @@ def load_manifest(path: Optional[str] = None) -> dict:
             )
         path = str(found)
     path = str(path)
-    try:
-        mtime = os.path.getmtime(path)
-    except OSError:
-        mtime = None
-    key = (path, mtime)
+    with open(path, "rb") as f:
+        raw = f.read()
+    key = (path, hashlib.sha256(raw).hexdigest())
     if key not in _cache:
         try:
-            with open(path, "r") as f:
-                _cache[key] = json.load(f)
+            parsed = json.loads(raw.decode("utf-8"))
         except json.JSONDecodeError as e:
             raise ValueError(f"Failed to parse manifest {path}: {e}") from e
-    return _cache[key]
+        except UnicodeDecodeError as e:
+            raise ValueError(f"Manifest {path} is not valid UTF-8: {e}") from e
+        _cache[key] = parsed
+    manifest = _cache[key]
+    # A JSON document that is not an object has no schema_version to read, so
+    # the gate refuses it here rather than letting `.get` raise AttributeError
+    # from inside the reader.
+    if not isinstance(manifest, dict):
+        raise ManifestVersionError(
+            "%s: manifest must be a JSON object, got %s"
+            % (path, type(manifest).__name__))
+    # Checked on every call, not only on a cache miss. Combined with the
+    # content-addressed key above, the verdict depends on what is on disk now
+    # and never on what this process happened to read earlier.
+    check_schema_version(manifest.get("schema_version"), name=path)
+    return manifest
 
 
 def clear_cache() -> None:
@@ -195,3 +362,20 @@ def fab_params(method_id: str, manifest: Optional[dict] = None) -> Dict[str, flo
 def adapter_for(method_id: str, manifest: Optional[dict] = None) -> str:
     """ADK interconnect adapter basename for a method."""
     return get_method(method_id, manifest)["adapter"]
+
+
+def die_processes(method_id: str, manifest: Optional[dict] = None) -> Optional[Tuple[str, ...]]:
+    """The die process ids a method attaches (contract 1.1), or None when the
+    method states none.
+
+    The ids are the assembly document's technology ids (chiplet-system
+    ``Technology.id``, e.g. ``"sg13g2"``), joined by string equality. None is
+    the only spelling of "not stated": the schema refuses an empty list, so a
+    caller never has to tell absence from emptiness. A strict consumer refuses
+    to mount any die on a method that states nothing; it never reads absence as
+    "any process". The demo ``vendorx_microbump`` entry states none.
+    """
+    listed = get_method(method_id, manifest).get("die_processes")
+    if listed is None:
+        return None
+    return tuple(listed)
