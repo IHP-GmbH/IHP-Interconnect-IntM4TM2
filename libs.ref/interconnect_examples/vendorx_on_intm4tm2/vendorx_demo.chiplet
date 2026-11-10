@@ -26,6 +26,8 @@ components:
   - id: interposer
     type: interposer
     technology: intm4tm2
+    # The mount plane: the interposer PDK's beol.attachment_surface_z_um.
+    attachment_surface_z: 10.8103
   - id: U1
     type: die
     connection: vendorx_microbump
