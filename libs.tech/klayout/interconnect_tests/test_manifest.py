@@ -194,14 +194,15 @@ def test_connection_stack_matches_layers_3d_and_body_diameter():
 
 
 def test_die_processes_on_every_library_method_and_none_on_the_demo():
-    """Contract 1.1: each library method states the die process it attaches,
-    as the assembly document keys its technologies; the fictional demo states
+    """Contract 1.1: each library method states the die processes it attaches,
+    as the assembly document keys its technologies (IHP applies the same
+    methods to SG13G2 and SG13CMOS5L dies); the fictional demo states
     none, so the shipped registry carries one entry in each state and "absent
     means not stated" is testable on real data."""
     m = _manifest()
     for mid in m["default_connection_library"]:
-        assert m["methods"][mid]["die_processes"] == ["sg13g2"], mid
-        assert im.die_processes(mid, m) == ("sg13g2",), mid
+        assert m["methods"][mid]["die_processes"] == ["sg13g2", "sg13cmos5l"], mid
+        assert im.die_processes(mid, m) == ("sg13g2", "sg13cmos5l"), mid
     assert "die_processes" not in m["methods"]["vendorx_microbump"]
     assert im.die_processes("vendorx_microbump", m) is None
 
