@@ -84,6 +84,23 @@ class ManifestVersionWarning(UserWarning):
     """The manifest is a same-major newer minor than this reader supports."""
 
 
+class FabParamsRefused(Exception):
+    """A method's pad parameters have no single reading (see :func:`fab_params`).
+
+    Derives from Exception directly, not from KeyError, TypeError or
+    ValueError. Consumers read those as "unknown method" or "nothing to read"
+    and fall back (the shape :class:`ManifestVersionError` describes, and a
+    consumer's handler may take ValueError too), so a refusal raised as one of
+    them would turn a pad parameter with two values into silently missing
+    geometry. ``message_id`` is chiplet-spec's id for the same refusal.
+    """
+
+    def __init__(self, message_id: str, text: str):
+        super().__init__("%s: %s" % (message_id, text))
+        self.message_id = message_id
+        self.text = text
+
+
 # Warn-once keys, (name, normalized version). Mirrors the reference reader so a
 # long-lived host (the KiCad plugin) does not repeat one warning per call.
 _WARNED_VERSIONS = set()
@@ -370,22 +387,8 @@ _FAB_PARAMS = {
 FAB_PARAMS_RENAMED = {new: old for new, (old, _) in _FAB_PARAMS.items()}
 
 
-class FabParamsRefused(Exception):
-    """A method's pad parameters have no single reading.
-
-    Deliberately not a KeyError, TypeError or ValueError: callers that treat
-    those as "no such method" or "no manifest" must not swallow this one.
-    ``message_id`` is chiplet-spec's id for the same refusal.
-    """
-
-    def __init__(self, message_id: str, text: str):
-        super().__init__("%s: %s" % (message_id, text))
-        self.message_id = message_id
-        self.text = text
-
-
 def fab_params(method_id: str, manifest: Optional[dict] = None, *,
-               where: Optional[str] = None) -> Dict[str, Any]:
+               where: Optional[str] = None) -> Dict[str, float]:
     """A method's ``fab_params`` (fab anchor params, they stay on the
     interposer), with each pad parameter under both of its names.
 
@@ -404,9 +407,14 @@ def fab_params(method_id: str, manifest: Optional[dict] = None, *,
     Raises KeyError for an unknown method, as :func:`get_method` does.
     """
     method = get_method(method_id, manifest)
-    if where is None:
+
+    def named() -> str:
+        # Resolved only for a refusal, so a read does no second discovery.
+        if where is not None:
+            return where
         found = find_manifest_path() if manifest is None else None
-        where = str(found) if found is not None else _MANIFEST_NAME
+        return str(found) if found is not None else _MANIFEST_NAME
+
     given = method.get("fab_params") if isinstance(method, dict) else None
     params = dict(given) if isinstance(given, dict) else {}
     for new, (old, words) in _FAB_PARAMS.items():
@@ -416,17 +424,17 @@ def fab_params(method_id: str, manifest: Optional[dict] = None, *,
                     "PACKAGE_METHODS_FAB_PARAMS_MISSING",
                     "%s: method %s has no fab_params.%s. Interconnect methods 1.x "
                     "keeps the old name beside %s, so that readers older than 1.2 "
-                    "still find it. Add it with the same value." % (where, method_id, old, new))
+                    "still find it. Add it with the same value." % (named(), method_id, old, new))
             raise FabParamsRefused(
                 "PACKAGE_METHODS_FAB_PARAMS_MISSING",
                 "%s: method %s has no %s: fab_params.%s and %s are both missing. "
-                "Add both, with the same value." % (where, method_id, words, old, new))
+                "Add both, with the same value." % (named(), method_id, words, old, new))
         if new in params and params[new] != params[old]:
             raise FabParamsRefused(
                 "PACKAGE_METHODS_FAB_PARAMS_DISAGREE",
                 "%s: method %s gives %s %s and %s %s. Since interconnect methods 1.2 "
                 "these are two names for one value, so the file has no single "
-                "reading. Make them equal." % (where, method_id, old, params[old],
+                "reading. Make them equal." % (named(), method_id, old, params[old],
                                                new, params[new]))
         params[new] = params[old]
     return params
