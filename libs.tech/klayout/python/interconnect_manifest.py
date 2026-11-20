@@ -52,7 +52,11 @@ _MANIFEST_NAME = "interconnect_methods.json"
 #: :func:`die_processes`). A 1.0 reader's version gate passes a 1.1 manifest
 #: with one warning; a validator holding the 1.0 schema still refuses it,
 #: because 1.0 closes each method object to new keys.
-SUPPORTED_SCHEMA_VERSION = "1.1"
+#:
+#: 1.2 gives the pad parameters in ``fab_params`` names that tie them to no
+#: technology, beside the old ones, which stay through every 1.x (see
+#: :func:`fab_params`).
+SUPPORTED_SCHEMA_VERSION = "1.2"
 
 
 class ManifestVersionError(ValueError):
@@ -354,9 +358,78 @@ def pitch_rules(method_id: str, manifest: Optional[dict] = None) -> Dict[str, fl
     return dict(get_method(method_id, manifest)["pitch_rules"])
 
 
-def fab_params(method_id: str, manifest: Optional[dict] = None) -> Dict[str, float]:
-    """{passiv_opening_um, tm2_enclosure_um, ...} -- fab anchor params (stay on interposer)."""
-    return dict(get_method(method_id, manifest)["fab_params"])
+#: The pad parameters of ``fab_params``, new name (1.2) -> (old name, the words
+#: a refusal uses for the parameter). The same table as chiplet-spec's
+#: ``chiplet_format_io.technology_package``.
+_FAB_PARAMS = {
+    "passivation_opening_um": ("passiv_opening_um", "passivation opening"),
+    "pad_metal_enclosure_um": ("tm2_enclosure_um", "pad metal enclosure"),
+}
+
+#: New name -> old name, for each pad parameter.
+FAB_PARAMS_RENAMED = {new: old for new, (old, _) in _FAB_PARAMS.items()}
+
+
+class FabParamsRefused(Exception):
+    """A method's pad parameters have no single reading.
+
+    Deliberately not a KeyError, TypeError or ValueError: callers that treat
+    those as "no such method" or "no manifest" must not swallow this one.
+    ``message_id`` is chiplet-spec's id for the same refusal.
+    """
+
+    def __init__(self, message_id: str, text: str):
+        super().__init__("%s: %s" % (message_id, text))
+        self.message_id = message_id
+        self.text = text
+
+
+def fab_params(method_id: str, manifest: Optional[dict] = None, *,
+               where: Optional[str] = None) -> Dict[str, Any]:
+    """A method's ``fab_params`` (fab anchor params, they stay on the
+    interposer), with each pad parameter under both of its names.
+
+    Since 1.2 a pad parameter has a new name beside the old one, and the old
+    one is required through every 1.x: ``passivation_opening_um`` beside
+    ``passiv_opening_um``, ``pad_metal_enclosure_um`` beside
+    ``tm2_enclosure_um``. The result always holds both names with the one
+    value, so a reader of either name reads it; other keys pass through. A
+    1.1 method, with the old names only, reads the same.
+
+    Raises :class:`FabParamsRefused` when the two names give two values, or
+    when the old name is missing (with or without the new one), as
+    chiplet-spec's ``method_fab_params`` does. ``where`` names the manifest in
+    the refusal; by default the discovered manifest's path, or
+    ``interconnect_methods.json`` when ``manifest`` is given without one.
+    Raises KeyError for an unknown method, as :func:`get_method` does.
+    """
+    method = get_method(method_id, manifest)
+    if where is None:
+        found = find_manifest_path() if manifest is None else None
+        where = str(found) if found is not None else _MANIFEST_NAME
+    given = method.get("fab_params") if isinstance(method, dict) else None
+    params = dict(given) if isinstance(given, dict) else {}
+    for new, (old, words) in _FAB_PARAMS.items():
+        if old not in params:
+            if new in params:
+                raise FabParamsRefused(
+                    "PACKAGE_METHODS_FAB_PARAMS_MISSING",
+                    "%s: method %s has no fab_params.%s. Interconnect methods 1.x "
+                    "keeps the old name beside %s, so that readers older than 1.2 "
+                    "still find it. Add it with the same value." % (where, method_id, old, new))
+            raise FabParamsRefused(
+                "PACKAGE_METHODS_FAB_PARAMS_MISSING",
+                "%s: method %s has no %s: fab_params.%s and %s are both missing. "
+                "Add both, with the same value." % (where, method_id, words, old, new))
+        if new in params and params[new] != params[old]:
+            raise FabParamsRefused(
+                "PACKAGE_METHODS_FAB_PARAMS_DISAGREE",
+                "%s: method %s gives %s %s and %s %s. Since interconnect methods 1.2 "
+                "these are two names for one value, so the file has no single "
+                "reading. Make them equal." % (where, method_id, old, params[old],
+                                               new, params[new]))
+        params[new] = params[old]
+    return params
 
 
 def adapter_for(method_id: str, manifest: Optional[dict] = None) -> str:

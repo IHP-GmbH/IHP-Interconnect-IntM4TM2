@@ -209,13 +209,13 @@ def test_die_processes_on_every_library_method_and_none_on_the_demo():
 
 def test_a_1p0_reader_reads_the_shipped_manifest_with_one_warning():
     """The policy's promise on real data: the version gate of a consumer still
-    pinned at 1.0 passes the 1.1 manifest with one warning, never a refusal
+    pinned at 1.0 passes the shipped manifest with one warning, never a refusal
     (additive MINOR)."""
     im._reset_version_warnings()
     version = json.loads(MANIFEST_PATH.read_text())["schema_version"]
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
-        assert im.check_schema_version(version, "1.0") == "1.1"
+        assert im.check_schema_version(version, "1.0") == "1.2"
     warned = [w for w in caught if issubclass(w.category, im.ManifestVersionWarning)]
     assert len(warned) == 1, [str(w.message) for w in caught]
 
