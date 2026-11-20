@@ -44,10 +44,14 @@ markers = [
 ]
 
 # The skips the tiered runner accepts, each a reason fragment and a node id
-# fragment; any other skip fails the tier. None: T0 deselects the parity case,
-# and T1 installs the reference it imports.
+# fragment; any other skip fails the tier. T0 deselects the parity cases, and
+# T1 installs the reference they import. One parity case needs a reference
+# reader of registry 1.2 (chiplet-format-io 1.25.0 or newer); until the pinned
+# reader is that new, it skips, and this entry says so.
 [tool.tierrun]
-declared-skips = []
+declared-skips = [
+    {reason = "reader predates registry 1.2", nodeid = "test_fab_params.py::test_parity_with_reference"},
+]
 
 # Each mutation must turn its tier red on the runner: with the padding
 # tolerance back, the padded version strings in test_version_policy's REFUSE
