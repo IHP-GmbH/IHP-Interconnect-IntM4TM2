@@ -59,6 +59,13 @@ REFUSALS = [row for new, old in PAIRS for row in (
      "value." % (WORDS[new], old, new)),
 )]
 
+#: (case, method) for a method with no pad parameters at all: refused as the
+#: first pair with neither name, not KeyError (which reads as no such method).
+NO_PARAMS = [("no fab_params", {}), ("fab_params not an object", {"fab_params": [40.0]})]
+NO_PARAMS_TEXT = ("PACKAGE_METHODS_FAB_PARAMS_MISSING: r.json: method m has no passivation "
+                  "opening: fab_params.passiv_opening_um and passivation_opening_um are both "
+                  "missing. Add both, with the same value.")
+
 #: (case, fab_params) that read, a 1.1 method among them.
 READS = [("old names only", OLD), ("both names", BOTH),
          ("another key passes", {**OLD, "other_um": 1.0})]
@@ -99,6 +106,13 @@ def test_a_method_without_a_single_reading_is_refused(case, fab_params, message_
     assert str(caught.value) == "%s: r.json: method m %s" % (message_id, text)
 
 
+@pytest.mark.parametrize("case,method", NO_PARAMS, ids=[row[0] for row in NO_PARAMS])
+def test_a_method_without_pad_parameters_is_refused(case, method):
+    with pytest.raises(im.FabParamsRefused) as caught:
+        im.fab_params("m", {"methods": {"m": method}}, where="r.json")
+    assert str(caught.value) == NO_PARAMS_TEXT
+
+
 def test_a_refusal_is_not_an_error_callers_read_as_no_method():
     """Callers catch KeyError, TypeError or ValueError as "no such method" or
     "nothing to read"; a pad parameter with no single reading must not look
@@ -125,6 +139,14 @@ def test_where_names_the_manifest_or_its_file_name(tmp_path, monkeypatch):
     finally:
         im.clear_cache()
     assert found.value.text.startswith(f"{path}: method m ")
+    # An empty dict reads the discovered manifest, and names it.
+    im.clear_cache()
+    try:
+        with pytest.raises(im.FabParamsRefused) as empty:
+            im.fab_params("m", {})
+    finally:
+        im.clear_cache()
+    assert empty.value.text.startswith(f"{path}: method m ")
 
 
 @pytest.mark.needs_sibling_sources
@@ -153,4 +175,10 @@ def test_parity_with_reference():
             im.fab_params("m", _one(fab_params), where="r.json")
         with pytest.raises(tp.TechnologyPackageError) as theirs:
             tp.method_fab_params("m", {"fab_params": fab_params}, where="r.json")
+        assert str(ours.value) == str(theirs.value), case
+    for case, method in NO_PARAMS:
+        with pytest.raises(im.FabParamsRefused) as ours:
+            im.fab_params("m", {"methods": {"m": method}}, where="r.json")
+        with pytest.raises(tp.TechnologyPackageError) as theirs:
+            tp.method_fab_params("m", method, where="r.json")
         assert str(ours.value) == str(theirs.value), case

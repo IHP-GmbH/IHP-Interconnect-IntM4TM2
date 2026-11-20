@@ -412,7 +412,8 @@ def fab_params(method_id: str, manifest: Optional[dict] = None, *,
         # Resolved only for a refusal, so a read does no second discovery.
         if where is not None:
             return where
-        found = find_manifest_path() if manifest is None else None
+        # An empty dict reads the discovered manifest, as get_method does.
+        found = find_manifest_path() if not manifest else None
         return str(found) if found is not None else _MANIFEST_NAME
 
     given = method.get("fab_params") if isinstance(method, dict) else None
