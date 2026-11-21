@@ -50,7 +50,8 @@ def _clean_warn_state():
 
 # (value, supported, expected_normalized) -- accepted with NO warning.
 ACCEPT_SILENT = [
-    ("1.1",     "1.1", "1.1"),   # the shipped manifest at the shipped reader
+    ("1.2",     "1.2", "1.2"),   # the shipped manifest at the shipped reader
+    ("1.1",     "1.1", "1.1"),   # a 1.1 manifest at a 1.1 reader
     ("1.0",     "1.0", "1.0"),   # a 1.0 manifest at a 1.0 reader
     ("1.0.0",   "1.0", "1.0"),   # PATCH ignored
     ("1.0.5",   "1.0", "1.0"),   # PATCH ignored, any value
@@ -62,7 +63,8 @@ ACCEPT_SILENT = [
 
 # (value, supported, expected_normalized) -- accepted WITH one warning.
 ACCEPT_WARN = [
-    ("1.1",   "1.0", "1.1"),   # the shipped manifest at a reader still pinned 1.0
+    ("1.2",   "1.0", "1.2"),   # the shipped manifest at a reader still pinned 1.0
+    ("1.1",   "1.0", "1.1"),   # a 1.1 manifest at a reader still pinned 1.0
     ("1.9",   "1.0", "1.9"),
     ("1.1.3", "1.0", "1.1"),   # PATCH dropped from the normalized result
     ("1.10",  "1.0", "1.10"),  # minor 10 > 1, not a float comparison
